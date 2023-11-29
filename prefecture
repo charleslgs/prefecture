@@ -32,50 +32,68 @@ echo "        --install            --> Install $0 like a software on your system
 echo ""
 }
 
+
+# Install and update the software.
 fn_install ()
 {
 fn_banner
-echo ""  
-read -p "Directory to install ? : " ${install_path:=$HOME/prefecture}
+echo ""
 
-if test -d $install_path; 
-  then
-    echo "Install $0 in : [$install_path] ? --> [y/n]"
-    read -s install_validation
-  else
-    read -p "Directory doesn't exist.. Create ? --> [y/n]" ${create_folder:=y} && mkdir -p $install_path
-    fn_install 
-fi
+install_path="$HOME/prefecture"
+# Confirm installation.
+read -p "Install $0 in : [$install_path] ? --> [y/n] " confirm_install
 
-
-case $install_validation in
+# confirm install.
+case $confirm_install in
   y)
-   echo "ok let's go"
+   echo ""  
+   echo " Installation.."
     ;;
   n)
-    # Dig mode.
-   echo "stop, try again"
-   fn_install
+   echo ""  
+   echo " Ok then, delect another directory.."
+   select_install_folder
     ;;
   *)
-   echo "fuck you"
-   fn_install
+   echo "Wrong anwser dummy."
+   exit 0
     ;;
 esac
 
-# add to path for the user
-echo 'export PATH=$PATH:'"$install_path" >> ~/.bashrc
-
-
+# Create the directory if needed.
+mkdir -p $install_path
 
 # Clone repo in the install path.
-git clone https://github.com/WigHlod/prefecture.git $install_path
+rm -rf $install_path/.git && git clone https://github.com/WigHlod/prefecture.git .git
 
+
+# check if script is already installed
+already_installed=$(cat ~/.bashrc | grep 'PREFECTURE-CRT-TOOL' | awk '{print $2}' | cut -d':' -f2)
+
+echo ""
+echo "already installed in   : $already_installed"  
+echo "wanted installation in : $install_path"  
+
+# 1st install check path.
+if [[ -z "$already_installed" ]]
+  then  
+   echo " ❌ 1st installation.. add $install_path to "'$PATH'
+   echo 'export PATH=$PATH:'"$install_path #PREFECTURE-CRT-TOOL" >> ~/.bashrc
+fi
+
+# already install and compare.
+if [ "$already_installed" != "$install_path" ];
+  then
+   echo ""  
+   echo " 🛝 - Update.. $install_path in "'$PATH'
+   sed -i .bkp "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$install_path #PREFECTURE-CRT-TOOL@g" ~/.bashrc
+fi
+   echo ""
 
 exit 0
 }
 
-
+# Decode arguments.
 fn_arg_check ()
 {
 if [[ -z "$1" ]];
