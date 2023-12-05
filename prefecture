@@ -3,7 +3,7 @@
 
 # This software is a SSL/TLS certificate toolbox.
 
-VERSION=0.0.3
+VERSION=0.0.4
 
 # Colors.
 Normal='\033[0m'          # Text Reset
@@ -134,11 +134,11 @@ echo ""
 # Create the directory if needed.
 mkdir -p $install_path 
 
-
 echo -e " ⤵️  - Install the latest $BWhite$latest_version.zip$Normal from$BWhite Github.com$Normal .."
 echo ""
 curl -L -o $install_path/prefecture.zip $latest_url 2>/dev/null
-unzip -o $install_path/prefecture.zip >/dev/null 2>&1 && rm -f $install_path/prefecture.zip 
+unzip -o $install_path/prefecture.zip -d $install_path >/dev/null 2>&1 && rm -f $install_path/prefecture.zip
+source $HOME/.bashrc
 exit 0
 }
 
@@ -243,7 +243,7 @@ echo ""
 MD5_CRT=$(openssl x509 -in cert_0.crt -pubkey -noout -outform pem  2>/dev/null | md5)
 
 # Read the list of keys to check. 
-while| read -r KEYFILE 
+while read -r KEYFILE 
 do
    # Get MD5 Value of CRT.
    MD5_PK=$(openssl pkey -in $KEYFILE -pubout -outform pem -passin pass:1234 2>/dev/null | md5)
