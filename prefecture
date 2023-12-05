@@ -1,25 +1,28 @@
 #!/bin/bash
 # Mainainer Ludovic Tual @ 2023.
 
-# This script is a certificate toolbox.
+# This software is a SSL/TLS certificate toolbox.
 
-# Colors :
+VERSION=0.0.2
+
+# Colors.
 Normal='\033[0m'          # Text Reset
 BWhite='\033[1;37m'       # Bold White
 White='\033[0;37m'        # White
 
-
+# Title banner.
 fn_banner ()
 {
 echo "╔═════════════════════════════════╗"
-echo "║   SSL/TLS Certificate Toolbox   ║"    
+echo "║    SSL/TLS Prefecture Toolbox   ║"    
 echo "╚═════════════════════════════════╝"
 echo ""
 }
 
+# Print the helper.
 fn_help ()
 {
-echo "$0 is a tool designed to help the management of certs."
+echo "This tool is designed to help the management of certs."
 echo ""
 echo "Usage:" 
 echo "        -d/--domain website.com OR -f/--file website.crt" 
@@ -28,68 +31,114 @@ echo "Option:"
 echo "        -k/--key private.key --> Verify if key is related to the certificate."
 echo "        --dig                --> Search for keyfile in HOME and try to match the cert." 
 echo "        -g                   --> Generate fullchain certificate." 
-echo "        --install            --> Install $0 like a software on your system."  
+echo "        --install            --> Install $0 like a software on your system."
+echo "        --version            --> Version number."           
 echo ""
 }
 
 
-# Install and update the software.
+### Install and update function.
 fn_install ()
 {
+# Show the banner.
 fn_banner
-echo ""
 
-install_path="$HOME/prefecture"
-# Confirm installation.
-read -p "Install $0 in : [$install_path] ? --> [y/n] " confirm_install
+# Define default installation directory.
+install_path="$HOME"
 
-# confirm install.
+# User confirm installation directory.
+echo -e " 🏛  - Default :$BWhite $install_path $Normal.. OK ? $BWhite[Press Enter$Normal or$BWhite n$Normal]" && read -s confirm_install
+
+# Is the user a dummy ?
 case $confirm_install in
-  y)
+  "")
    echo ""  
-   echo " Installation.."
+   echo " 📦 - Let's go.."
     ;;
   n)
-   echo ""  
-   echo " Ok then, delect another directory.."
-   select_install_folder
+   echo "" 
+   echo -e " 📂 - $BWhite Enter a directory path..$Normal"
+   echo ""
+   read -e install_path
+   echo ""
     ;;
   *)
-   echo "Wrong anwser dummy."
+   echo " ❌ - Wrong anwser dummy.. Try again."
+   echo ""
    exit 0
     ;;
 esac
 
-# Create the directory if needed.
-mkdir -p $install_path
+# Get latest release from Github.
+latest_url=$(curl -s https://api.github.com/repos/WigHlod/prefecture/releases/latest | grep "tag_name" \
+| awk '{print "https://github.com/WigHlod/prefecture/archive/" substr($2, 2, length($2)-3) ".zip"}')
 
-# Clone repo in the install path.
-rm -rf $install_path/.git && git clone https://github.com/WigHlod/prefecture.git .git
+latest_version=$(echo $latest_url | tr "/" " " | awk '{print $NF}' | cut -b 1-5)
+
+echo ""   
+echo "•••••••••••••••••••••••••••••••••••"
+echo ""
 
 
-# check if script is already installed
+# Check if script is already installed
+installed_version=$(prefecture --version)
 already_installed=$(cat ~/.bashrc | grep 'PREFECTURE-CRT-TOOL' | awk '{print $2}' | cut -d':' -f2)
 
-echo ""
-echo "already installed in   : $already_installed"  
-echo "wanted installation in : $install_path"  
+if [[ -z "$install_path" ]]
+  then  
+   echo " ❌ Empty path.. Exit."
+   echo ""
+   exit 0
+fi
 
-# 1st install check path.
+fullpath=$(echo $install_path/prefecture-$latest_version)
+# Remove excess of "/" in path.
+fullpath=$(echo $fullpath | sed "s@//@/@g")
+
 if [[ -z "$already_installed" ]]
   then  
-   echo " ❌ 1st installation.. add $install_path to "'$PATH'
-   echo 'export PATH=$PATH:'"$install_path #PREFECTURE-CRT-TOOL" >> ~/.bashrc
+   ## Will add path line in bashrc if it's the first install.
+   echo " 🎁 - Congrats, it's your 1st installation.."
+   # Set the path in the BashRC.
+   echo 'export PATH=$PATH:'"$fullpath #PREFECTURE-CRT-TOOL" >> ~/.bashrc
+  else
+   echo -e " 🔶 - Version $BWhite$installed_version$Normal already installed under : $BWhite$already_installed$Normal"
 fi
 
-# already install and compare.
-if [ "$already_installed" != "$install_path" ];
+echo -e " 🔷 - Version $BWhite$latest_version$Normal will be installed under : $BWhite$fullpath$Normal"
+
+# Overwrite.
+if [ "$already_installed" != "$fullpath" ];
   then
    echo ""  
-   echo " 🛝 - Update.. $install_path in "'$PATH'
-   sed -i .bkp "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$install_path #PREFECTURE-CRT-TOOL@g" ~/.bashrc
-fi
+   echo " 🌀 - "'$PATH'" Update.."
+   echo "" 
+   sed -i .bkp "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/.bashrc
+  else
    echo ""
+   echo -e " 🛑 - Update could overwrite files, OK ? $BWhite[Press Enter]$Normal"
+   read -s overwrite_install
+   echo ""
+fi
 
+if [[ "$overwrite_install" ]]
+  then  
+   echo " ❌ Cancelled.. Exit."
+   echo ""
+   exit 0
+fi
+
+echo "•••••••••••••••••••••••••••••••••••"
+echo ""
+
+# Create the directory if needed.
+mkdir -p $install_path 
+
+
+echo -e " ⤵️  - Install the latest $BWhite$latest_version.zip$Normal from$BWhite Github.com$Normal .."
+echo ""
+curl -L -o $install_path/prefecture.zip $latest_url 2>/dev/null
+unzip -o $install_path/prefecture.zip >/dev/null 2>&1 && rm -f $install_path/prefecture.zip 
 exit 0
 }
 
@@ -145,7 +194,11 @@ while [[ $# -gt 0 ]]; do
       fn_banner
       fn_help
       exit 1
-      ;;     
+      ;;
+     --version)
+      echo "$VERSION"
+      exit 0
+      ;;       
     -*|--*)
       fn_banner  
       fn_help
@@ -161,7 +214,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-
+### Generate fullchain certificate.crt
 fn_forge_fullchain ()
 {
 if [ $GEN_FULL ];
@@ -174,13 +227,13 @@ if [ $GEN_FULL ];
 fi
 }
 
-
+### Find .key/pem files in $HOME to compare them with CRT file.
 fn_key_digger ()
 {
 find -E $HOME -iregex ".*\.(key|pem)" 2>/dev/null | grep -v ' ' > key_list.tmp
 }
 
-# Mode that compare KEY and CRT Files.
+### Mode that compare KEY and CRT Files.
 fn_certificate_compare ()
 {
 echo "•••••••••••••••••••••••••••••••••••"
@@ -190,7 +243,7 @@ echo ""
 MD5_CRT=$(openssl x509 -in cert_0.crt -pubkey -noout -outform pem  2>/dev/null | md5)
 
 # Read the list of keys to check. 
-while read -r KEYFILE 
+while| read -r KEYFILE 
 do
    # Get MD5 Value of CRT.
    MD5_PK=$(openssl pkey -in $KEYFILE -pubout -outform pem -passin pass:1234 2>/dev/null | md5)
