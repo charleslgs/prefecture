@@ -3,7 +3,7 @@
 
 # This software is a SSL/TLS certificate toolbox.
 
-VERSION=0.0.4
+VERSION=0.0.5
 
 # Colors.
 Normal='\033[0m'          # Text Reset
@@ -82,6 +82,7 @@ echo ""
 
 # Check if script is already installed
 installed_version=$(prefecture --version)
+
 already_installed=$(cat ~/.bashrc | grep 'PREFECTURE-CRT-TOOL' | awk '{print $2}' | cut -d':' -f2)
 
 if [[ -z "$install_path" ]]
@@ -95,12 +96,24 @@ fullpath=$(echo $install_path/prefecture-$latest_version)
 # Remove excess of "/" in path.
 fullpath=$(echo $fullpath | sed "s@//@/@g")
 
+# Detect shell.
+case $SHELL in
+  /bin/bash)
+    shell_env_file=.bashrc  
+    ;;
+  /bin/zsh)
+    shell_env_file=.zshrc
+    ;;
+esac
+
+echo "FILE $shell_env_file"
+
 if [[ -z "$already_installed" ]]
   then  
    ## Will add path line in bashrc if it's the first install.
    echo " 🎁 - Congrats, it's your 1st installation.."
    # Set the path in the BashRC.
-   echo 'export PATH=$PATH:'"$fullpath #PREFECTURE-CRT-TOOL" >> ~/.bashrc
+   echo 'export PATH=$PATH:'"$fullpath #PREFECTURE-CRT-TOOL" >> ~/$shell_env_file
   else
    echo -e " 🔶 - Version $BWhite$installed_version$Normal already installed under : $BWhite$already_installed$Normal"
 fi
@@ -113,7 +126,7 @@ if [ "$already_installed" != "$fullpath" ];
    echo ""  
    echo " 🌀 - "'$PATH'" Update.."
    echo "" 
-   sed -i .bkp "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/.bashrc
+   sed -i .bkp "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/$shell_env_file
   else
    echo ""
    echo -e " 🛑 - Update could overwrite files, OK ? $BWhite[Press Enter]$Normal"
