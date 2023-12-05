@@ -3,7 +3,7 @@
 
 # This software is a SSL/TLS certificate toolbox.
 
-VERSION=0.0.2
+VERSION=0.0.3
 
 # Colors.
 Normal='\033[0m'          # Text Reset
@@ -386,12 +386,3 @@ esac
 
 # Clean workspace and start the script.. LAUNCH !!
 rm -f bundle.crt cert_*.crt && fn_run_mode
-
-
-
-
-
-
- 
-
-
