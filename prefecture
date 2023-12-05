@@ -151,7 +151,6 @@ echo -e " ⤵️  - Install the latest $BWhite$latest_version.zip$Normal from$BW
 echo ""
 curl -L -o $install_path/prefecture.zip $latest_url 2>/dev/null
 unzip -o $install_path/prefecture.zip -d $install_path >/dev/null 2>&1 && rm -f $install_path/prefecture.zip
-source $HOME/.bashrc
 exit 0
 }
 
