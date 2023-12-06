@@ -3,7 +3,7 @@
 
 # This software is a SSL/TLS certificate toolbox.
 
-VERSION=0.0.5
+VERSION=0.0.6
 
 # Colors.
 Normal='\033[0m'          # Text Reset
@@ -25,13 +25,13 @@ fn_help ()
 echo "This tool is designed to help the management of certs."
 echo ""
 echo "Usage:" 
-echo "        -d/--domain website.com OR -f/--file website.crt" 
+echo "        -d website.com OR -f website.crt" 
 echo ""
 echo "Option:"
-echo "        -k/--key private.key --> Verify if key is related to the certificate."
+echo "        -k private.key --> Verify if key is related to the certificate."
 echo "        --dig                --> Search for keyfile in HOME and try to match the cert." 
 echo "        -g                   --> Generate fullchain certificate." 
-echo "        --install            --> Install $0 like a software on your system."
+echo "        --install            --> Install $0 on your system."
 echo "        --version            --> Version number."           
 echo ""
 }
@@ -106,8 +106,6 @@ case $SHELL in
     ;;
 esac
 
-echo "FILE $shell_env_file"
-
 if [[ -z "$already_installed" ]]
   then  
    ## Will add path line in bashrc if it's the first install.
@@ -126,7 +124,7 @@ if [ "$already_installed" != "$fullpath" ];
    echo ""  
    echo " 🌀 - "'$PATH'" Update.."
    echo "" 
-   sed -i .bkp "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/$shell_env_file
+   sed -i''  "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/$shell_env_file
   else
    echo ""
    echo -e " 🛑 - Update could overwrite files, OK ? $BWhite[Press Enter]$Normal"
@@ -151,6 +149,7 @@ echo -e " ⤵️  - Install the latest $BWhite$latest_version.zip$Normal from$BW
 echo ""
 curl -L -o $install_path/prefecture.zip $latest_url 2>/dev/null
 unzip -o $install_path/prefecture.zip -d $install_path >/dev/null 2>&1 && rm -f $install_path/prefecture.zip
+source $HOME/$shell_env_file
 exit 0
 }
 
@@ -184,7 +183,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     -k|--key)
       KEY_FILE=$2
-      echo "$2" > key_list.tmp
+      echo "$2" > /tmp/key_list.tmp
       SUBMODE=1
       fn_arg_check $2
       shift 2
@@ -234,7 +233,7 @@ if [ $GEN_FULL ];
    echo "•••••••••••••••••••••••••••••••••••"
    echo ""
    echo -e " 🏗️  - Generate fullchain cert file : $BWhite"$ISSUED_CRT"_fullchain.crt $Normal" 
-   cat cert_*.crt > $ISSUED_CRT"_fullchain.crt"
+   cat /tmp/cert_*.crt > $ISSUED_CRT"_fullchain.crt"
    echo ""
 fi
 }
@@ -242,7 +241,7 @@ fi
 ### Find .key/pem files in $HOME to compare them with CRT file.
 fn_key_digger ()
 {
-find -E $HOME -iregex ".*\.(key|pem)" 2>/dev/null | grep -v ' ' > key_list.tmp
+find -E $HOME -iregex ".*\.(key|pem)" 2>/dev/null | grep -v ' ' > /tmp/key_list.tmp
 }
 
 ### Mode that compare KEY and CRT Files.
@@ -252,7 +251,7 @@ echo "••••••••••••••••••••••••�
 echo ""
 
 # Get MD5 Value of CRT.
-MD5_CRT=$(openssl x509 -in cert_0.crt -pubkey -noout -outform pem  2>/dev/null | md5)
+MD5_CRT=$(openssl x509 -in /tmp/cert_0.crt -pubkey -noout -outform pem  2>/dev/null | md5)
 
 # Read the list of keys to check. 
 while read -r KEYFILE 
@@ -271,15 +270,15 @@ if [[ "$MD5_CRT" == "$MD5_PK" ]];
   else 
    echo " 🔶 Trying.. But the key didn't match the certificate."
 fi
-done < key_list.tmp
+done < /tmp/key_list.tmp
 echo " ❌ Sorry.. Unable to find a key that match the certificate."
 echo ""
 }
 
 fn_get_basic_infos ()
 {
-SERVER_DATE_CRT=$(openssl x509 -in cert_0.crt -noout -enddate | cut -d"=" -f2)
-ISSUED_CRT=$(openssl x509 -in cert_0.crt  -noout -text | grep "Subject:" | awk '{print $NF}' | cut -d'=' -f2)
+SERVER_DATE_CRT=$(openssl x509 -in /tmp/cert_0.crt -noout -enddate | cut -d"=" -f2)
+ISSUED_CRT=$(openssl x509 -in /tmp/cert_0.crt  -noout -text | grep "Subject:" | awk '{print $NF}' | cut -d'=' -f2)
 
 echo -e " 🌏 - Certificate for domain : $BWhite$DOMAIN_NAME$Normal" 
 echo -e " 👑 - Is issued for CN : $BWhite$ISSUED_CRT$Normal"
@@ -292,7 +291,7 @@ fn_get_chain ()
 echo "•••••••••••••••••••••••••••••••••••"
 echo ""
 # Get URL of the CA Issuer.
-INTER_URL=$(openssl x509 -in cert_0.crt  -noout -text | grep "CA Issuers" | cut -d":" -f2,3)
+INTER_URL=$(openssl x509 -in /tmp/cert_0.crt  -noout -text | grep "CA Issuers" | cut -d":" -f2,3)
 
 # Check if CA Issuer has been found. 
 if [[ -z "$INTER_URL" ]]
@@ -307,25 +306,25 @@ DEEPH=1
 # Loop to explore the deeph of the certifcates chain.
 while [[ ! -z "$INTER_URL" ]]; do
 # Download the intermediates certs.
-wget -q -O cert_$DEEPH.crt $INTER_URL && openssl x509 -in cert_$DEEPH.crt -inform DER -out cert_$DEEPH.crt && \
-echo -e " 📝 - $BWhite cert_$DEEPH.crt $Normal has been generated for :$BWhite $INTER_URL $Normal" 
-cat cert_$DEEPH.crt >> bundle.crt
+wget -q -O /tmp/cert_$DEEPH.crt $INTER_URL && openssl x509 -in /tmp/cert_$DEEPH.crt -inform DER -out /tmp/cert_$DEEPH.crt && \
+echo -e " 📝 - $BWhite /tmp/cert_$DEEPH.crt $Normal has been generated for :$BWhite $INTER_URL $Normal" 
+cat /tmp/cert_$DEEPH.crt >> /tmp/ca_bundle.crt
 
-# openssl x509 -in cert_0.crt  -noout -enddate 
-# openssl verify -untrusted cert_1.crt cert_0.crt
+# openssl x509 -in /tmp/cert_0.crt  -noout -enddate 
+# openssl verify -untrusted cert_1.crt /tmp/cert_0.crt
 
-# openssl verify -untrusted bundle.crt cert_0.crt
-# cat cert_2.crt cert_1.crt > bundle.crt 
+# openssl verify -untrusted /tmp/ca_bundle.crt /tmp/cert_0.crt
+# cat cert_2.crt cert_1.crt > /tmp/ca_bundle.crt 
 
 # Detect the next CA URL Issuers.
-INTER_URL=$(openssl x509 -in cert_$DEEPH.crt -noout -text | grep "CA Issuers" | cut -d":" -f2,3)
+INTER_URL=$(openssl x509 -in /tmp/cert_$DEEPH.crt -noout -text | grep "CA Issuers" | cut -d":" -f2,3)
 # Check if max deeph is reached. 
 if [[ -z "$INTER_URL" ]]
   then
    echo ""  
    echo " 🛝 - Certificate chain has reached maximum depth.. "
    echo "" 
- #  echo "Validity : "$(openssl verify -untrusted bundle.crt cert_0.crt | awk '{print $NF}')
+ #  echo "Validity : "$(openssl verify -untrusted /tmp/ca_bundle.crt /tmp/cert_0.crt | awk '{print $NF}')
 fi
 # Increase rotate loop and continue.
 DEEPH=$((DEEPH+1))
@@ -352,10 +351,10 @@ fi
 
 if [[ ! -z "$DOMAIN_NAME" ]]
   then
-   true | openssl s_client -connect $DOMAIN_NAME:443 -servername "$DOMAIN_NAME" 2>/dev/null | openssl x509 > cert_0.crt
+   true | openssl s_client -connect $DOMAIN_NAME:443 -servername "$DOMAIN_NAME" 2>/dev/null | openssl x509 > /tmp/cert_0.crt
   else
    DOMAIN_NAME="Not Provided."
-   cp $CERT_FILE cert_0.crt
+   cp $CERT_FILE /tmp/cert_0.crt
 fi
 }
 
@@ -397,4 +396,4 @@ esac
 }
 
 # Clean workspace and start the script.. LAUNCH !!
-rm -f bundle.crt cert_*.crt && fn_run_mode
+rm -f /tmp/ca_bundle.crt cert_*.crt && fn_run_mode
