@@ -3,7 +3,7 @@
 
 # This software is a SSL/TLS certificate toolbox.
 
-VERSION=0.0.7
+VERSION=0.0.8
 
 # Colors.
 Normal='\033[0m'          # Text Reset
@@ -79,11 +79,19 @@ echo ""
 echo "•••••••••••••••••••••••••••••••••••"
 echo ""
 
+# Detect shell.
+case $SHELL in
+  /bin/bash)
+    shell_env_file=.bashrc
+    ;;
+  /bin/zsh)
+    shell_env_file=.zshrc
+    ;;
+esac
 
 # Check if script is already installed
 installed_version=$(prefecture --version)
-
-already_installed=$(cat ~/.bashrc | grep 'PREFECTURE-CRT-TOOL' | awk '{print $2}' | cut -d':' -f2)
+already_installed=$(cat ~/$shell_env_file | grep 'PREFECTURE-CRT-TOOL' | awk '{print $2}' | cut -d':' -f2)
 
 if [[ -z "$install_path" ]]
   then  
@@ -96,15 +104,7 @@ fullpath=$(echo $install_path/prefecture-$latest_version)
 # Remove excess of "/" in path.
 fullpath=$(echo $fullpath | sed "s@//@/@g")
 
-# Detect shell.
-case $SHELL in
-  /bin/bash)
-    shell_env_file=.bashrc
-    ;;
-  /bin/zsh)
-    shell_env_file=.zshrc
-    ;;
-esac
+
 
 if [[ -z "$already_installed" ]]
   then  
@@ -127,7 +127,8 @@ if [ "$already_installed" != "$fullpath" ];
    echo ""  
    echo " 🌀 - "'$PATH'" Update.."
    echo "" 
-   sed -i '' "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/$shell_env_file
+   #sed -i '' "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/$shell_env_file
+   cp $HOME/$shell_env_file /tmp/$shell_env_file.tmp && awk '/#PREFECTURE-CRT-TOOL/ { print "export PATH=$PATH:'"$fullpath"' #PREFECTURE-CRT-TOOL"; next; }; { print; }' /tmp/$shell_env_file.tmp > $HOME/$shell_env_file
   else
    echo ""
    echo -e " 🛑 - Update could overwrite files, OK ? $BWhite[Press Enter]$Normal"
