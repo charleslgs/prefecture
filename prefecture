@@ -3,7 +3,7 @@
 
 # This software is a SSL/TLS certificate toolbox.
 
-VERSION=0.0.6
+VERSION=0.0.7
 
 # Colors.
 Normal='\033[0m'          # Text Reset
@@ -99,7 +99,7 @@ fullpath=$(echo $fullpath | sed "s@//@/@g")
 # Detect shell.
 case $SHELL in
   /bin/bash)
-    shell_env_file=.bashrc  
+    shell_env_file=.bashrc
     ;;
   /bin/zsh)
     shell_env_file=.zshrc
@@ -118,13 +118,16 @@ fi
 
 echo -e " 🔷 - Version $BWhite$latest_version$Normal will be installed under : $BWhite$fullpath$Normal"
 
+
+
+
 # Overwrite.
 if [ "$already_installed" != "$fullpath" ];
   then
    echo ""  
    echo " 🌀 - "'$PATH'" Update.."
    echo "" 
-   sed -i''  "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/$shell_env_file
+   sed -i '' "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/$shell_env_file
   else
    echo ""
    echo -e " 🛑 - Update could overwrite files, OK ? $BWhite[Press Enter]$Normal"
@@ -149,7 +152,7 @@ echo -e " ⤵️  - Install the latest $BWhite$latest_version.zip$Normal from$BW
 echo ""
 curl -L -o $install_path/prefecture.zip $latest_url 2>/dev/null
 unzip -o $install_path/prefecture.zip -d $install_path >/dev/null 2>&1 && rm -f $install_path/prefecture.zip
-source $HOME/$shell_env_file
+source $HOME/$shell_env_file 2>/dev/null
 exit 0
 }
 
