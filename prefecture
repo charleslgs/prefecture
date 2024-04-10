@@ -3,7 +3,7 @@
 
 # This software is a SSL/TLS certificate toolbox.
 
-VERSION=0.0.8
+VERSION=0.0.9
 
 # Colors.
 Normal='\033[0m'          # Text Reset
@@ -236,8 +236,8 @@ if [ $GEN_FULL ];
   then
    echo "•••••••••••••••••••••••••••••••••••"
    echo ""
-   echo -e " 🏗️  - Generate fullchain cert file : $BWhite"$ISSUED_CRT"_fullchain.crt $Normal" 
-   cat /tmp/cert_*.crt > $ISSUED_CRT"_fullchain.crt"
+   echo -e " 🏗️   - Generate fullchain cert file : $BWhite"$ISSUED_CRT"_"$SERVER_VALIDITY_YEARS_CRT"_fullchain.crt $Normal"
+   cat /tmp/cert_*.crt > $ISSUED_CRT"_"$SERVER_VALIDITY_YEARS_CRT"_fullchain.crt"
    echo ""
 fi
 }
@@ -282,6 +282,8 @@ echo ""
 fn_get_basic_infos ()
 {
 SERVER_DATE_CRT=$(openssl x509 -in /tmp/cert_0.crt -noout -enddate | cut -d"=" -f2)
+SERVER_YEARS_CRT=$(openssl x509 -in /tmp/cert_0.crt -noout -enddate | cut -d"=" -f2 | cut -d " " -f4)
+SERVER_VALIDITY_YEARS_CRT=$(echo $SERVER_YEARS_CRT)-$(echo $(($SERVER_YEARS_CRT - 1)))
 ISSUED_CRT=$(openssl x509 -in /tmp/cert_0.crt  -noout -text | grep "Subject:" | awk '{print $NF}' | cut -d'=' -f2)
 
 echo -e " 🌏 - Certificate for domain : $BWhite$DOMAIN_NAME$Normal" 
