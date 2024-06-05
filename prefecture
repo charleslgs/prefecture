@@ -1,9 +1,9 @@
 #!/bin/bash
-# Mainainer Ludovic Tual @ 2023.
+# Mainainer Ludovic Tual @ 2024.
 
 # This software is a SSL/TLS certificate toolbox.
 
-VERSION=0.0.8
+VERSION=0.0.9
 
 # Colors.
 Normal='\033[0m'          # Text Reset
@@ -31,130 +31,8 @@ echo "Option:"
 echo "        -k private.key --> Verify if key is related to the certificate."
 echo "        --dig                --> Search for keyfile in HOME and try to match the cert." 
 echo "        -g                   --> Generate fullchain certificate." 
-echo "        --install            --> Install $0 on your system."
 echo "        --version            --> Version number."           
 echo ""
-}
-
-
-### Install and update function.
-fn_install ()
-{
-# Show the banner.
-fn_banner
-
-# Define default installation directory.
-install_path="$HOME"
-
-# User confirm installation directory.
-echo -e " 🏛  - Default :$BWhite $install_path $Normal.. OK ? $BWhite[Press Enter$Normal or$BWhite n$Normal]" && read -s confirm_install
-
-# Is the user a dummy ?
-case $confirm_install in
-  "")
-   echo ""  
-   echo " 📦 - Let's go.."
-    ;;
-  n)
-   echo "" 
-   echo -e " 📂 - $BWhite Enter a directory path..$Normal"
-   echo ""
-   read -e install_path
-   echo ""
-    ;;
-  *)
-   echo " ❌ - Wrong anwser dummy.. Try again."
-   echo ""
-   exit 0
-    ;;
-esac
-
-# Get latest release from Github.
-latest_url=$(curl -s https://api.github.com/repos/WigHlod/prefecture/releases/latest | grep "tag_name" \
-| awk '{print "https://github.com/WigHlod/prefecture/archive/" substr($2, 2, length($2)-3) ".zip"}')
-
-latest_version=$(echo $latest_url | tr "/" " " | awk '{print $NF}' | cut -b 1-5)
-
-echo ""   
-echo "•••••••••••••••••••••••••••••••••••"
-echo ""
-
-# Detect shell.
-case $SHELL in
-  /bin/bash)
-    shell_env_file=.bashrc
-    ;;
-  /bin/zsh)
-    shell_env_file=.zshrc
-    ;;
-esac
-
-# Check if script is already installed
-installed_version=$(prefecture --version)
-already_installed=$(cat ~/$shell_env_file | grep 'PREFECTURE-CRT-TOOL' | awk '{print $2}' | cut -d':' -f2)
-
-if [[ -z "$install_path" ]]
-  then  
-   echo " ❌ Empty path.. Exit."
-   echo ""
-   exit 0
-fi
-
-fullpath=$(echo $install_path/prefecture-$latest_version)
-# Remove excess of "/" in path.
-fullpath=$(echo $fullpath | sed "s@//@/@g")
-
-
-
-if [[ -z "$already_installed" ]]
-  then  
-   ## Will add path line in bashrc if it's the first install.
-   echo " 🎁 - Congrats, it's your 1st installation.."
-   # Set the path in the BashRC.
-   echo 'export PATH=$PATH:'"$fullpath #PREFECTURE-CRT-TOOL" >> ~/$shell_env_file
-  else
-   echo -e " 🔶 - Version $BWhite$installed_version$Normal already installed under : $BWhite$already_installed$Normal"
-fi
-
-echo -e " 🔷 - Version $BWhite$latest_version$Normal will be installed under : $BWhite$fullpath$Normal"
-
-
-
-
-# Overwrite.
-if [ "$already_installed" != "$fullpath" ];
-  then
-   echo ""  
-   echo " 🌀 - "'$PATH'" Update.."
-   echo "" 
-   #sed -i '' "s@.*#PREFECTURE-CRT-TOOL.*@export PATH=\$PATH:$fullpath #PREFECTURE-CRT-TOOL@g" ~/$shell_env_file
-   cp $HOME/$shell_env_file /tmp/$shell_env_file.tmp && awk '/#PREFECTURE-CRT-TOOL/ { print "export PATH=$PATH:'"$fullpath"' #PREFECTURE-CRT-TOOL"; next; }; { print; }' /tmp/$shell_env_file.tmp > $HOME/$shell_env_file
-  else
-   echo ""
-   echo -e " 🛑 - Update could overwrite files, OK ? $BWhite[Press Enter]$Normal"
-   read -s overwrite_install
-   echo ""
-fi
-
-if [[ "$overwrite_install" ]]
-  then  
-   echo " ❌ Cancelled.. Exit."
-   echo ""
-   exit 0
-fi
-
-echo "•••••••••••••••••••••••••••••••••••"
-echo ""
-
-# Create the directory if needed.
-mkdir -p $install_path 
-
-echo -e " ⤵️  - Install the latest $BWhite$latest_version.zip$Normal from$BWhite Github.com$Normal .."
-echo ""
-curl -L -o $install_path/prefecture.zip $latest_url 2>/dev/null
-unzip -o $install_path/prefecture.zip -d $install_path >/dev/null 2>&1 && rm -f $install_path/prefecture.zip
-source $HOME/$shell_env_file 2>/dev/null
-exit 0
 }
 
 # Decode arguments.
@@ -169,6 +47,8 @@ if [[ -z "$1" ]];
    exit 0
 fi
 }
+
+
 
 # Args decoder : 
 while [[ $# -gt 0 ]]; do
@@ -201,10 +81,6 @@ while [[ $# -gt 0 ]]; do
       GEN_FULL=true
       shift 1
       ;;
-     --install)
-      fn_install
-      shift 1
-      ;; 
      -h|--help)
       fn_banner
       fn_help
@@ -236,8 +112,8 @@ if [ $GEN_FULL ];
   then
    echo "•••••••••••••••••••••••••••••••••••"
    echo ""
-   echo -e " 🏗️  - Generate fullchain cert file : $BWhite"$ISSUED_CRT"_fullchain.crt $Normal" 
-   cat /tmp/cert_*.crt > $ISSUED_CRT"_fullchain.crt"
+   echo -e " 🏗️  - Generate fullchain cert file : $BWhite"$ISSUED_CRT"_fullchain_$EXPIRE_YEAR.crt $Normal" 
+   cat /tmp/cert_*.crt > $ISSUED_CRT"_fullchain_$EXPIRE_YEAR.crt" 
    echo ""
 fi
 }
@@ -245,7 +121,9 @@ fi
 ### Find .key/pem files in $HOME to compare them with CRT file.
 fn_key_digger ()
 {
+echo -e " 🔍 - Please wait.. digging for 🔑 inside $BWhite$HOME$Normal"   
 find -E $HOME -iregex ".*\.(key|pem)" 2>/dev/null | grep -v ' ' > /tmp/key_list.tmp
+echo ""
 }
 
 ### Mode that compare KEY and CRT Files.
@@ -282,6 +160,7 @@ echo ""
 fn_get_basic_infos ()
 {
 SERVER_DATE_CRT=$(openssl x509 -in /tmp/cert_0.crt -noout -enddate | cut -d"=" -f2)
+EXPIRE_YEAR=$(echo "$SERVER_DATE_CRT" | awk '{print $4}')
 ISSUED_CRT=$(openssl x509 -in /tmp/cert_0.crt  -noout -text | grep "Subject:" | awk '{print $NF}' | cut -d'=' -f2)
 
 echo -e " 🌏 - Certificate for domain : $BWhite$DOMAIN_NAME$Normal" 
